@@ -1,0 +1,140 @@
+<?php
+/**
+ * @file login_whitelist.module
+ */
+define('BAD_REQUEST', 'malformed request, possible cracking attempt!');
+
+/**
+ * Implements hook_help().
+ * 
+ */
+function login_whitelist_help($path, $arg) {
+  if ($path == 'admin/help#login_whitelist') {
+    return t('Users whitelist module provides list of Usernames and User Email addresses allowed for login to site.');
+  }
+}
+
+/**
+ * Implements hook_permission().
+ *
+ */
+function login_whitelist_permission() {
+  return array(
+    'administer login_whitelist settings' => array(
+      'title' => t('Administer Users whitelist')
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu().
+ *
+ */
+function login_whitelist_menu() {
+  $items = array();
+
+  $items['admin/config/people/login_whitelist'] = array(
+    'type' => MENU_NORMAL_ITEM,
+    'title' => 'Login whitelist',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => array('login_whitelist_settings_form'),
+    'file' => 'login_whitelist.admin.inc',
+    'access callback' => 'user_access',
+    'access arguments' => array('administer login_whitelist settings'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_init().
+ *
+ */
+function login_whitelist_init() {
+  
+  if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (arg(0) == 'user' && (arg(1) == 'login' || arg(1) == NULL)) {
+      
+      $login_name = is_string($_POST['name']) ? htmlspecialchars($_POST['name']) : BAD_REQUEST;
+
+      if ($login_name == BAD_REQUEST || !login_whitelist_found($login_name)) {
+        login_whitelist_header();
+        
+        watchdog(
+          'login_whitelist',
+          'Bad login attempt from IP: @ip, User-Agent: @user_agent, <br />Login attempt as: @login',
+          array(
+            '@ip' => ip_address(),
+            '@user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? htmlspecialchars($_SERVER['HTTP_USER_AGENT']) : 'Unknown',
+            '@login' => $login_name,
+          ),
+          WATCHDOG_WARNING
+        );
+        
+        exit();
+      }
+    }
+  }
+} 
+
+/**
+ * Check if username whitelisted
+ * 
+ * @param string $username
+ * @return boolean
+ */
+function login_whitelist_found($username = '') {
+  $found     = FALSE;
+  $config    = config('login_whitelist.settings');
+  $all_users = $config->get('all_users');
+  $whitelisted = array();
+  
+  if($all_users) {
+    $result = db_select('users', 'u')
+        ->fields('u', array('name', 'mail'))
+        ->condition('status', 1)
+        ->execute();
+    
+    foreach ($result as $login) {
+      $whitelisted[] = $login->name;
+      $whitelisted[] = $login->mail;
+    }
+  }
+  else {
+    $whitelist   = $config->get('whitelist');
+    $whitelisted = login_whitelist_textarea_to_array($whitelist);
+  }
+  
+  if (in_array($username, $whitelisted)) {
+    $found = TRUE;
+  }
+
+  return $found;
+} 
+
+function login_whitelist_header() {
+  $config      = config('login_whitelist.settings');
+  $status_code = $config->get('status_code');
+
+  $status_string = $status_code == '403' ? 'HTTP/1.1 403 Forbidden' : 'HTTP/1.1 404 Not found';
+  
+  header($status_string);
+}
+
+/**
+ * Utility function
+ * @param string $raw_string
+ * @return array of strings from textarea
+ */
+function login_whitelist_textarea_to_array($raw_string = '') {
+  $array_of_strings = array();
+  
+  if (!empty($raw_string)) {
+    $raw_array = preg_split("/\\r\\n|\\r|\\n/", $raw_string);
+    
+    $array_of_strings = array_map('trim', $raw_array);
+  }
+  return $array_of_strings;
+}
+
+
