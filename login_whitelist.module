@@ -51,6 +51,8 @@ function login_whitelist_menu() {
  *
  */
 function login_whitelist_init() {
+  $config      = config('login_whitelist.settings');
+  $log_enabled = $config->get('log_enabled');
   
   if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (arg(0) == 'user' && (arg(1) == 'login' || arg(1) == NULL)) {
@@ -60,16 +62,18 @@ function login_whitelist_init() {
       if ($login_name == BAD_REQUEST || !login_whitelist_found($login_name)) {
         login_whitelist_header();
         
-        watchdog(
-          'login_whitelist',
-          'Bad login attempt from IP: @ip, User-Agent: @user_agent, <br />Login attempt as: @login',
-          array(
-            '@ip' => ip_address(),
-            '@user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? htmlspecialchars($_SERVER['HTTP_USER_AGENT']) : 'Unknown',
-            '@login' => $login_name,
-          ),
-          WATCHDOG_WARNING
-        );
+        if ($log_enabled) {
+          watchdog(
+            'login_whitelist',
+            'Bad login attempt from IP: @ip, User-Agent: @user_agent, <br />Login attempt as: @login',
+            array(
+              '@ip' => ip_address(),
+              '@user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? htmlspecialchars($_SERVER['HTTP_USER_AGENT']) : 'Unknown',
+              '@login' => $login_name,
+            ),
+            WATCHDOG_WARNING
+          );
+        }
         
         exit();
       }
@@ -116,9 +120,9 @@ function login_whitelist_header() {
   $config      = config('login_whitelist.settings');
   $status_code = $config->get('status_code');
 
-  $status_string = $status_code == '403' ? 'HTTP/1.1 403 Forbidden' : 'HTTP/1.1 404 Not found';
-  
-  header($status_string);
+  $status_string = $status_code == '403' ? ' 403 Forbidden' : ' 404 Not found';
+
+  header($_SERVER['SERVER_PROTOCOL'] . $status_string);
 }
 
 /**

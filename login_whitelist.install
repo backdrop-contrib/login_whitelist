@@ -3,3 +3,11 @@
  * @file
  * Login whitelist install
  */
+/**
+ *  Add and init new variable.
+ */
+function login_whitelist_update_1000() {
+  $config = config('login_whitelist.settings');
+  $config->set('log_enabled', 0);
+  $config->save();  
+}

@@ -46,6 +46,13 @@ function login_whitelist_settings_form() {
     '#default_value' => $config->get('status_code'),
     '#description' => t('Select HTTP status code which should be returned to unwanted visitor.'),
   );
+  $form['log_enabled'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Write log for all unwanted login attempts'),
+    '#default_value' => $config->get('log_enabled'),
+    '#description' => t('If this option is selected, all unwanted login attempts should be written to dblog ("Reports -> Recent log messages").'), 
+  );
+  
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
     '#type' => 'submit',
@@ -70,6 +77,7 @@ function login_whitelist_settings_form_submit($form, &$form_state) {
   $config->set('status_code', $form_state['values']['status_code']);
   $config->set('whitelist',   trim($form_state['values']['whitelist']));
   $config->set('all_users',   $form_state['values']['all_users']);
+  $config->set('log_enabled', $form_state['values']['log_enabled']);
   $config->save();
   
   backdrop_set_message(t('The configuration options have been saved.'));

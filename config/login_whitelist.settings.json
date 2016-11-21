@@ -2,5 +2,6 @@
   "_config_name": "login_whitelist.settings",
   "status_code": "403",
   "all_users": 1,
-  "whitelist": ""
+  "whitelist": "",
+  "log_enabled": 0
 }
