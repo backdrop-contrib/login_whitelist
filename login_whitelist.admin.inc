@@ -63,11 +63,22 @@ function login_whitelist_settings_form() {
 }
 
 function login_whitelist_settings_form_validate($form, &$form_state) {
-
-  $form_values = $form_state['values'];
   
-  if ($form_values['all_users'] == 0 && empty(trim($form_values['whitelist']))) {
-    form_set_error('', t('Please fill some Usernames or Emails to "Whitelist" field or allow login to all users!'));
+  global $user;
+  $form_values = $form_state['values'];
+
+  if ($form_values['all_users'] == 0) { 
+    if(empty(trim($form_values['whitelist']))) {
+      form_set_error('', t('Please fill some usernames or emails to "Whitelist" field or allow login to all users!'));
+    }
+    else {
+      $whitelist = login_whitelist_textarea_to_array(trim($form_values['whitelist']));
+      $self = in_array($user->name, $whitelist) || in_array($user->mail, $whitelist);     
+
+      if (!$self) {
+        form_set_error('', t('Please add to "Whitelist" field your own username or email to prevent blocking yourself!'));        
+      }
+    }
   }
 }  
 
