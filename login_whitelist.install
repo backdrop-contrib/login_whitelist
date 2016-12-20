@@ -11,3 +11,11 @@ function login_whitelist_update_1000() {
   $config->set('log_enabled', 0);
   $config->save();  
 }
+/**
+ *  Add and init new variable.
+ */
+function login_whitelist_update_1001() {
+  $config = config('login_whitelist.settings');
+  $config->set('bad_ua_list', '');
+  $config->save();  
+}

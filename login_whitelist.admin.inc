@@ -11,9 +11,10 @@
  *
  */
 function login_whitelist_settings_form() {
-  $config    = config('login_whitelist.settings');
-  $whitelist = $config->get('whitelist');
-
+  $config      = config('login_whitelist.settings');
+  $whitelist   = $config->get('whitelist');
+  $bad_ua_list = $config->get('bad_ua_list');
+  
   $form = array();
 
   $form['all_users'] = array(
@@ -46,11 +47,24 @@ function login_whitelist_settings_form() {
     '#default_value' => $config->get('status_code'),
     '#description' => t('Select HTTP status code which should be returned to unwanted visitor.'),
   );
+  $form['bad_ua_list'] = array(
+    '#type' =>  'textarea',
+    '#title' => t('Bad robots User-Agent strings list'),
+    '#default_value' => $bad_ua_list,
+    '#description' => t('If you know User-Agent strings used by bad robots, place it here, one per line, see an example below:') 
+    . '<em>'     
+    . '<br />Mozilla/5.0 (Windows NT 5.1; rv:29.0) Gecko/20100101 Firefox/29.0'
+    . '<br />Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko'
+    . '</em>'
+    . '<br /><strong>'    
+    . t('Please note: Any GET request to user login using User-Agent string listed above will be rejected.')
+    . '</strong>',
+  );
   $form['log_enabled'] = array(
     '#type' => 'checkbox',
     '#title' => t('Write log for all unwanted login attempts'),
     '#default_value' => $config->get('log_enabled'),
-    '#description' => t('If this option is selected, all unwanted login attempts should be written to dblog ("Reports -> Recent log messages").'), 
+    '#description' => t('If this option is selected, all unwanted login attempts should be written to dblog ("Reports -> Recent log messages") as warning message of type "login_whitelist".'), 
   );
   
   $form['actions'] = array('#type' => 'actions');
@@ -87,6 +101,7 @@ function login_whitelist_settings_form_submit($form, &$form_state) {
 
   $config->set('status_code', $form_state['values']['status_code']);
   $config->set('whitelist',   trim($form_state['values']['whitelist']));
+  $config->set('bad_ua_list', trim($form_state['values']['bad_ua_list']));
   $config->set('all_users',   $form_state['values']['all_users']);
   $config->set('log_enabled', $form_state['values']['log_enabled']);
   $config->save();

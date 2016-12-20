@@ -4,5 +4,5 @@ package = Spam control
 backdrop = 1.x
 type = module
 configure = admin/config/people/login_whitelist
-version = 1.0.3
+version = 1.0.4
 

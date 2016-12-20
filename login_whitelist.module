@@ -53,30 +53,41 @@ function login_whitelist_menu() {
 function login_whitelist_init() {
   $config      = config('login_whitelist.settings');
   $log_enabled = $config->get('log_enabled');
-  
-  if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (arg(0) == 'user' && (arg(1) == 'login' || arg(1) == NULL)) {
-      
-      $login_name = is_string($_POST['name']) ? htmlspecialchars($_POST['name']) : BAD_REQUEST;
 
-      if ($login_name == BAD_REQUEST || !login_whitelist_found($login_name)) {
-        login_whitelist_header();
-        
-        if ($log_enabled) {
-          watchdog(
-            'login_whitelist',
-            'Bad login attempt from IP: @ip, User-Agent: @user_agent, <br />Login attempt as: @login',
-            array(
-              '@ip' => ip_address(),
-              '@user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? htmlspecialchars($_SERVER['HTTP_USER_AGENT']) : 'Unknown',
-              '@login' => $login_name,
-            ),
-            WATCHDOG_WARNING
-          );
-        }
-        
-        exit();
+  if (arg(0) == 'user' && (arg(1) == 'login' || arg(1) == NULL)) {
+    $ua_string      = isset($_SERVER['HTTP_USER_AGENT']) ? htmlspecialchars($_SERVER['HTTP_USER_AGENT']) : 'Unknown';
+    $request_method = $_SERVER['REQUEST_METHOD'];
+    $do_reject      = FALSE;
+    
+    if ($request_method === 'GET') {
+      if (login_whitelist_bad_ua_listed($ua_string)) {
+        $do_reject = TRUE;
+        $watchdog_message = 'Login attempt rejected for restricted User-Agent: ' . $ua_string . ' from IP: ' . ip_address();
       }
+    }
+        
+    if ($request_method === 'POST') {
+      $login_name = is_string($_POST['name']) ? htmlspecialchars($_POST['name']) : BAD_REQUEST;
+      
+      if ($login_name == BAD_REQUEST || !login_whitelist_found($login_name)) {
+        $do_reject = TRUE;
+        $watchdog_message = 'Bad login attempt from IP: ' . ip_address() . ', User-Agent: ' . $ua_string . ', <br />Login attempt as: ' . $login_name;
+      } 
+    }
+    
+    if ($do_reject) {
+      login_whitelist_header();
+
+      if ($log_enabled) {
+        watchdog(
+          'login_whitelist',
+          $watchdog_message,
+          NULL,
+          WATCHDOG_WARNING
+        );
+      }
+      
+      exit();
     }
   }
 } 
@@ -124,6 +135,24 @@ function login_whitelist_header() {
 
   header($_SERVER['SERVER_PROTOCOL'] . $status_string);
 }
+
+/**
+ * Check if User-Agent string is listed as used by bad robot
+ * 
+ * @param string $ua_string
+ * @return boolean
+ */
+function login_whitelist_bad_ua_listed($ua_string = '') {
+  $found         = FALSE;
+  $config        = config('login_whitelist.settings');
+  $bad_ua_list   = $config->get('bad_ua_list');
+  $bad_ua_listed = login_whitelist_textarea_to_array($bad_ua_list);
+
+  if (in_array($ua_string, $bad_ua_listed)) {
+    $found = TRUE;
+  }
+  return $found;
+} 
 
 /**
  * Utility function
