@@ -1,8 +1,8 @@
 name = Login whitelist
-description = Restrict login to the site for whitelist'ed users only.
+description = Restrict login to your site for whitelisted users only.
 package = Spam control
 backdrop = 1.x
 type = module
 configure = admin/config/people/login_whitelist
-version = 1.0.4
+version = 1.0.5
 

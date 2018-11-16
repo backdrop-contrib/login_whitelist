@@ -5,13 +5,15 @@
 define('BAD_REQUEST', 'malformed request, possible cracking attempt!');
 
 /**
- * Implements hook_help().
- * 
+ * Implements hook_config_info().
  */
-function login_whitelist_help($path, $arg) {
-  if ($path == 'admin/help#login_whitelist') {
-    return t('Users whitelist module provides list of Usernames and User Email addresses allowed for login to site.');
-  }
+function login_whitelist_config_info() {
+  $prefixes['login_whitelist.settings'] = array(
+    'label' => t('Login whitelist'),
+    'group' => t('Configuration'),
+  );
+  
+  return $prefixes;
 }
 
 /**
@@ -21,7 +23,7 @@ function login_whitelist_help($path, $arg) {
 function login_whitelist_permission() {
   return array(
     'administer login_whitelist settings' => array(
-      'title' => t('Administer Users whitelist')
+      'title' => t('Administer Login whitelist')
     ),
   );
 }
@@ -37,10 +39,36 @@ function login_whitelist_menu() {
     'type' => MENU_NORMAL_ITEM,
     'title' => 'Login whitelist',
     'page callback' => 'backdrop_get_form',
-    'page arguments' => array('login_whitelist_settings_form'),
+    'page arguments' => array('login_whitelist_main_settings_form'),
     'file' => 'login_whitelist.admin.inc',
     'access callback' => 'user_access',
     'access arguments' => array('administer login_whitelist settings'),
+  );
+  
+  $items['admin/config/people/login_whitelist/main'] = array(
+    'title' => 'Main settings',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 1,
+  );
+
+  $items['admin/config/people/login_whitelist/ua_string'] = array(
+    'title' => 'Blocked User Agents',
+    'type' => MENU_LOCAL_TASK,
+    'page arguments' => array('login_whitelist_ua_string_form'),
+    
+    'file' => 'login_whitelist.admin.inc',
+    'access callback' => 'user_access',
+    'access arguments' => array('administer login_whitelist settings'),
+    'weight' => 2,
+  );
+
+  $items['admin/config/people/login_whitelist/ua_string/unblock/%'] = array(
+    'title' => 'Unblock UA string',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => array('login_whitelist_unblock', 6),
+    'access arguments' => array('administer login_whitelist settings'),
+    'file' => 'login_whitelist.admin.inc',
+    'type' => MENU_CALLBACK,
   );
 
   return $items;
@@ -53,42 +81,53 @@ function login_whitelist_menu() {
 function login_whitelist_init() {
   $config      = config('login_whitelist.settings');
   $log_enabled = $config->get('log_enabled');
+  $do_reject   = FALSE;
 
-  if (arg(0) == 'user' && (arg(1) == 'login' || arg(1) == NULL)) {
+  if (arg(0) == 'user') {
     $ua_string      = isset($_SERVER['HTTP_USER_AGENT']) ? htmlspecialchars($_SERVER['HTTP_USER_AGENT']) : 'Unknown';
     $request_method = $_SERVER['REQUEST_METHOD'];
-    $do_reject      = FALSE;
     
-    if ($request_method === 'GET') {
-      if (login_whitelist_bad_ua_listed($ua_string)) {
-        $do_reject = TRUE;
-        $watchdog_message = 'Login attempt rejected for restricted User-Agent: ' . $ua_string . ' from IP: ' . ip_address();
+    if (arg(1) == 'register' || arg(1) == 'password') {
+      if ($request_method === 'GET' || $request_method === 'POST') {
+        if (login_whitelist_bad_ua_listed($ua_string)) {
+          $watchdog_message = 'Cracking attempt "' . arg(1) . '", IP: ' . ip_address() . ' rejected for restricted User-Agent: ' . $ua_string;
+          $do_reject = TRUE;
+        }
+      }  
+    }
+    elseif (arg(1) == 'login' || arg(1) == NULL) {
+      if ($request_method === 'GET') {
+        if (login_whitelist_bad_ua_listed($ua_string)) {
+          $watchdog_message = 'Login attempt rejected for restricted User-Agent: ' . $ua_string . ' from IP: ' . ip_address();
+          $do_reject = TRUE;
+        }
       }
-    }
-        
-    if ($request_method === 'POST') {
-      $login_name = is_string($_POST['name']) ? htmlspecialchars($_POST['name']) : BAD_REQUEST;
-      
-      if ($login_name == BAD_REQUEST || !login_whitelist_found($login_name)) {
-        $do_reject = TRUE;
-        $watchdog_message = 'Bad login attempt from IP: ' . ip_address() . ', User-Agent: ' . $ua_string . ', <br />Login attempt as: ' . $login_name;
-      } 
-    }
-    
-    if ($do_reject) {
-      login_whitelist_header();
 
-      if ($log_enabled) {
-        watchdog(
-          'login_whitelist',
-          $watchdog_message,
-          NULL,
-          WATCHDOG_WARNING
-        );
+      if ($request_method === 'POST') {
+        $login_name = is_string($_POST['name']) ? htmlspecialchars($_POST['name']) : BAD_REQUEST;
+        $login_pass = is_string($_POST['pass']) ? htmlspecialchars($_POST['pass']) : BAD_REQUEST;
+
+        if ($login_name == BAD_REQUEST || !login_whitelist_found($login_name)) {
+          $watchdog_message = 'Rejected "' . $login_name . '", IP: ' . ip_address() . ', User-Agent "' . $ua_string . '", password used "' . $login_pass . '"';
+          $do_reject = TRUE;
+        } 
       }
-      
-      exit();
     }
+  }
+  
+  if ($do_reject) {
+    login_whitelist_header();
+
+    if ($log_enabled) {
+      watchdog(
+        'login_whitelist',
+        $watchdog_message,
+        NULL,
+        WATCHDOG_WARNING
+      );
+    }
+
+    exit();
   }
 } 
 
@@ -99,9 +138,9 @@ function login_whitelist_init() {
  * @return boolean
  */
 function login_whitelist_found($username = '') {
-  $found     = FALSE;
-  $config    = config('login_whitelist.settings');
-  $all_users = $config->get('all_users');
+  $found       = FALSE;
+  $config      = config('login_whitelist.settings');
+  $all_users   = $config->get('all_users');
   $whitelisted = array();
   
   if($all_users) {
@@ -145,10 +184,9 @@ function login_whitelist_header() {
 function login_whitelist_bad_ua_listed($ua_string = '') {
   $found         = FALSE;
   $config        = config('login_whitelist.settings');
-  $bad_ua_list   = $config->get('bad_ua_list');
-  $bad_ua_listed = login_whitelist_textarea_to_array($bad_ua_list);
+  $bad_ua_list   = $config->get('ua_list');
 
-  if (in_array($ua_string, $bad_ua_listed)) {
+  if (is_array($bad_ua_list) && in_array($ua_string, $bad_ua_list)) {
     $found = TRUE;
   }
   return $found;

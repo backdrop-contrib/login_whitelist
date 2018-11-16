@@ -1,57 +1,66 @@
 Login whitelist
 ===============
 
-Restrict login to the site for whitelisted users only.
-Provides protection against "lazy" brute force attack and harmfully malformed login requests.
+Restrict login to your site for whitelisted users only, protect against "lazy" brute force 
+attack and harmful malformed login requests.
 
-Goals 
------
+Features 
+--------
+
+You may want to restrict access to login to your site for few of registered users only, 
+so you can do it by creating a short (or long) whitelist.
+
 IP-based blacklisting is not effective protection against "lazy" brute force attack, 
-which use large number non-repeated IPs and relatively rare requests - one or two in few minutes.
+which can use large number non-repeated IPs and relatively rare requests - one or two in few minutes.
 
-For any of such requests Backdrop returned HTTP status code "200 OK" 
-and attacker's script still to try same usernames or emails again and again.
-
-This module prevents such behavior by returning 403 or 404 to any login attempt, 
+This module react to such behavior by returning 403 or 404 (by your choice) to any login attempt, 
 where username or email is not whitelisted.
 
 Same reaction will be performed for harmfully malformed login requests, 
 e.g. using array within POST, and preventing useful for attacker PHP errors 
 generating (and displaying on some setups).
 
-For some reason you may want to restrict access to the site 
-for few of registered users only, so you can do it by creating a short (or long) whitelist.
+By enabling logging for all unwanted login attempts you can have an idea which pairs 
+of usernames and passwords have been used for brute force, IP and User-Agent used by attackers script.
 
-Additionally, *User-Agent strings known as used by bad robots* can be added to reject 
-even for their GET login request. 
+Additionally, User-Agent strings of known attackers (also collected from log, described above) 
+can be used in block-list to reject their requests even for `GET user/login` requests.
 
 Installation
 ------------
+
 Install this module using the official Backdrop CMS instructions at 
 https://backdropcms.org/guide/modules
 
-Configuration and usage
------------------------
+Configuration
+-------------
+
 Administration page is available via menu *Administration > Configuration > 
-User accounts > Login whitelist* (admin/config/people/login_whitelist) 
-and may be used for:
+User accounts > Login whitelist* (admin/config/people/login_whitelist).
+
+Under tab "Main settings":
 
 - allow login to all registered active users (enabled by default);
 - create whitelist for login as described under corresponding field;
-- change type of HTTP status code which should be returned to unwanted visitor,
-- create list of User-Agent strings known as used by bad robots.
+- change type of HTTP status code which should be returned to unwanted visitor.
+
+Under tab "Blocked User-Agents":
+
+- create and manage block-list of User-Agent strings known as used by bad robots.
 
 License
 -------
+
 This project is GPL v2 software. See the LICENSE.txt file in this directory for
 complete text.
 
 Current Maintainer
 ------------------
+
 Vladimir (https://github.com/findlabnet/)
 
-More information
-----------------
+Issues
+------
 For bug reports, feature or support requests, please use the module 
 issue queue at https://github.com/backdrop-contrib/login_whitelist/issues.
 

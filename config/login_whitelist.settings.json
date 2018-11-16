@@ -3,6 +3,6 @@
   "status_code": "403",
   "all_users": 1,
   "whitelist": "",
-  "bad_ua_list": "",  
+  "ua_list": [],  
   "log_enabled": 0
 }

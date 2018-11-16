@@ -19,3 +19,36 @@ function login_whitelist_update_1001() {
   $config->set('bad_ua_list', '');
   $config->save();  
 }
+/**
+ *  Change format of User-Agent list.
+ */
+function login_whitelist_update_1002() {
+  $config = config('login_whitelist.settings');
+
+  $bad_ua_list = $config->get('bad_ua_list');
+  if (!empty($bad_ua_list)) {
+    $tmp_array = _list_to_array($bad_ua_list);
+    $ua_list = array();
+    foreach ($tmp_array as $ua_string) {
+      $ua_list[md5($ua_string)] = $ua_string;
+    }
+    asort($ua_list, SORT_NATURAL | SORT_FLAG_CASE);
+    $config->set('ua_list', $ua_list);
+  }
+  else {
+    $config->set('ua_list', array());
+  }
+  
+  $config->clear('bad_ua_list');
+  $config->save();  
+}
+
+function _list_to_array($list = '') {
+  $array_of_strings = array();
+  
+  if (!empty($list)) {
+    $raw_array = preg_split("/\\r\\n|\\r|\\n/", $list);
+    $array_of_strings = array_map('trim', $raw_array);
+  }
+  return $array_of_strings;
+}
