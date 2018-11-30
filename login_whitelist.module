@@ -2,7 +2,7 @@
 /**
  * @file login_whitelist.module
  */
-define('BAD_REQUEST', 'malformed request, possible cracking attempt!');
+define('BAD_REQUEST', 'unsafe or faulty');
 
 /**
  * Implements hook_config_info().
@@ -79,36 +79,30 @@ function login_whitelist_menu() {
  *
  */
 function login_whitelist_init() {
-  $config      = config('login_whitelist.settings');
-  $log_enabled = $config->get('log_enabled');
-  $do_reject   = FALSE;
+  $do_reject        = FALSE;
+  $watchdog_message = '';
 
   if (arg(0) == 'user') {
-    $ua_string      = isset($_SERVER['HTTP_USER_AGENT']) ? htmlspecialchars($_SERVER['HTTP_USER_AGENT']) : 'Unknown';
+    $ua_string      = isset($_SERVER['HTTP_USER_AGENT']) ? htmlspecialchars($_SERVER['HTTP_USER_AGENT']) : '';
     $request_method = $_SERVER['REQUEST_METHOD'];
+    $bad_ua         = login_whitelist_bad_ua($ua_string);
     
-    if (arg(1) == 'register' || arg(1) == 'password') {
-      if ($request_method === 'GET' || $request_method === 'POST') {
-        if (login_whitelist_bad_ua_listed($ua_string)) {
-          $watchdog_message = 'Cracking attempt "' . arg(1) . '", IP: ' . ip_address() . ' rejected for restricted User-Agent: ' . $ua_string;
-          $do_reject = TRUE;
-        }
-      }  
+    if (!empty($bad_ua)) {
+      $watchdog_message = $bad_ua;
+      $do_reject = TRUE;
     }
-    elseif (arg(1) == 'login' || arg(1) == NULL) {
-      if ($request_method === 'GET') {
-        if (login_whitelist_bad_ua_listed($ua_string)) {
-          $watchdog_message = 'Login attempt rejected for restricted User-Agent: ' . $ua_string . ' from IP: ' . ip_address();
-          $do_reject = TRUE;
-        }
-      }
-
-      if ($request_method === 'POST') {
-        $login_name = is_string($_POST['name']) ? htmlspecialchars($_POST['name']) : BAD_REQUEST;
-        $login_pass = is_string($_POST['pass']) ? htmlspecialchars($_POST['pass']) : BAD_REQUEST;
+    else {
+      if ($request_method == 'POST') {
+        $login_name = !empty($_POST['name']) && is_string($_POST['name']) 
+          ? htmlspecialchars($_POST['name']) 
+          : BAD_REQUEST;
 
         if ($login_name == BAD_REQUEST || !login_whitelist_found($login_name)) {
-          $watchdog_message = 'Rejected "' . $login_name . '", IP: ' . ip_address() . ', User-Agent "' . $ua_string . '", password used "' . $login_pass . '"';
+          $login_pass = !empty($_POST['pass']) && is_string($_POST['pass']) 
+            ? htmlspecialchars($_POST['pass']) 
+            : BAD_REQUEST;
+          
+          $watchdog_message = 'Rejected <em>' . $login_name . '</em> request, from IP: ' . ip_address() . ', User-Agent: <em>' . $ua_string . '</em>, password being used: <em>' . $login_pass . '</em>';
           $do_reject = TRUE;
         } 
       }
@@ -116,20 +110,32 @@ function login_whitelist_init() {
   }
   
   if ($do_reject) {
-    login_whitelist_header();
-
-    if ($log_enabled) {
-      watchdog(
-        'login_whitelist',
-        $watchdog_message,
-        NULL,
-        WATCHDOG_WARNING
-      );
-    }
-
-    exit();
+    login_whitelis_reject($watchdog_message);
   }
-} 
+}
+
+/**
+ * Reject action
+ * 
+ * @param string $watchdog_message
+ */
+function login_whitelis_reject($watchdog_message = '') {
+  $config      = config('login_whitelist.settings');
+  $log_enabled = $config->get('log_enabled');
+  
+  login_whitelist_header();
+
+  if ($log_enabled) {
+    watchdog(
+      'login_whitelist',
+      $watchdog_message,
+      NULL,
+      WATCHDOG_WARNING
+    );
+  }
+
+  exit();
+}
 
 /**
  * Check if username whitelisted
@@ -176,26 +182,29 @@ function login_whitelist_header() {
 }
 
 /**
- * Check if User-Agent string is listed as used by bad robot
- * 
+ * Check if User-Agent string is blocked, empty or too short.
  * @param string $ua_string
- * @return boolean
+ * @return string $message, not empty if found bad UA
  */
-function login_whitelist_bad_ua_listed($ua_string = '') {
-  $found         = FALSE;
+function login_whitelist_bad_ua($ua_string = '') {
   $config        = config('login_whitelist.settings');
   $bad_ua_list   = $config->get('ua_list');
+  $too_short     = strlen($ua_string) <= 3 ? TRUE : FALSE;
+  $message       = '';
 
-  if (is_array($bad_ua_list) && in_array($ua_string, $bad_ua_list)) {
-    $found = TRUE;
+  if ($too_short) {
+    $message = 'Rejected fake User-Agent: "' . $ua_string . '" from IP: ' . ip_address();
   }
-  return $found;
+  if (is_array($bad_ua_list) && in_array($ua_string, $bad_ua_list)) {
+    $message = 'Rejected blocked User-Agent: "' . $ua_string . '" from IP: ' . ip_address();
+  }
+  return $message;
 } 
 
 /**
  * Utility function
  * @param string $raw_string
- * @return array of strings from textarea
+ * @return array of strings saved via textarea
  */
 function login_whitelist_textarea_to_array($raw_string = '') {
   $array_of_strings = array();
@@ -207,5 +216,3 @@ function login_whitelist_textarea_to_array($raw_string = '') {
   }
   return $array_of_strings;
 }
-
-

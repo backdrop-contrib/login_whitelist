@@ -1,13 +1,13 @@
 <?php
 /**
  * @file
- * Admin forms to manage module
+ * Admin forms to configure module
  *
  */
 
 /**
  * 
- * Settings form for module.
+ * Main settings form for module.
  *
  */
 function login_whitelist_main_settings_form() {
@@ -25,14 +25,14 @@ function login_whitelist_main_settings_form() {
     '#type' =>  'textarea',
     '#title' => t('Whitelist'),
     '#default_value' => $config->get('whitelist'),
-    '#description' => t('If you need short list of usernames or Emails allowed for login to this site, place it here, one per line, see an example below:') 
+    '#description' => t('If you need whitelist of usernames or Emails allowed for login to this site, place it here, one per line, see an example below:') 
     . '<em>'     
     . '<br />johndow'
     . '<br />jane.dow@example.com'
     . '<br />another-username'
     . '</em>'
     . '<br /><strong>'    
-    . t('Please note: Make sure checkbox above is not selected and filled usernames or users Emails is registered on this site.')
+    . t('Please note: Make sure checkbox above is not selected and filled usernames or users Emails is registered and active on this site.')
     . '</strong>',
   );
   $form['status_code'] = array(
@@ -49,7 +49,7 @@ function login_whitelist_main_settings_form() {
     '#type' => 'checkbox',
     '#title' => t('Write log for all unwanted login attempts'),
     '#default_value' => $config->get('log_enabled'),
-    '#description' => t('If this option is selected, all unwanted login attempts should be written to dblog ("Reports -> Recent log messages") as warning message of type "login_whitelist".'), 
+    '#description' => t('If this option is selected, all unwanted login attempts should be written to dblog ("Reports -> Recent log messages") as warning messages of type "login_whitelist".'), 
   );
   
   $form['actions'] = array('#type' => 'actions');
@@ -99,7 +99,7 @@ function login_whitelist_ua_string_form() {
   $form = array();
 
   $form['add_ua'] = array(
-    '#prefix' => '<p>' . t('On this page you can manage list of User-Agent not allowed for your site (like "bad robots")') . '</p>',
+    '#prefix' => '<p>' . t('List of User-Agent strings not allowed for login action to your site (like "bad robots")') . '</p>',
     '#type' => 'fieldset',
     '#title' => t('Add User-Agent string to list blocked'),
     '#collapsible' => FALSE,
@@ -107,17 +107,20 @@ function login_whitelist_ua_string_form() {
     
   );
   $form['add_ua']['ua'] = array(
-    '#title' => t('Add User-Agent string to field below'),
     '#type' => 'textfield',
     '#size' => 120,
     '#maxlength' => 256,
     '#default_value' => '',
-    '#description' => t('User-Agent string known as used by bad robots, as an example below:')
+    '#description' => t('User-Agent string known as used by bad robots, examples below:')
       . '<em>'
       . '<br />Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko'
       . '</em>'
+      . '<br /><strong>'. t('or') .'</strong>' 
+      . '<em>'
+      . '<br />drupalgeddon2'
+      . '</em>'
       . '<br /><strong>'    
-      . t('Please note: Any GET request to user login using User-Agent string listed below will be rejected.')
+      . t('Please note: Any requests to user login using User-Agent string listed below will be rejected.')
       . '</strong>',
   );
   $form['add_ua']['actions'] = array('#type' => 'actions');
@@ -128,7 +131,7 @@ function login_whitelist_ua_string_form() {
 
   $ua_list = $config->get('ua_list');
   $rows = array();
-  $header = array(t('Blocked User-Agent strings'), t('Actions'));
+  $header = array(t('User-Agent string'), t('Action'));
   
   if (!empty($ua_list)) {
     foreach ($ua_list as $key => $ua_string) {
@@ -205,7 +208,6 @@ function login_whitelist_unblock($form, &$form_state, $key) {
     $ua_string = $ua_list[$key];
     return confirm_form($form, t('Are you sure you want to unblock %ua_string?', array('%ua_string' => $ua_string)), 'admin/config/people/login_whitelist/ua_string', t('This action cannot be undone.'), t('Unblock'), t('Cancel'));
   }
-  
 }
 
 /**
@@ -230,5 +232,4 @@ function login_whitelist_unblock_submit($form, &$form_state) {
     backdrop_set_message(t('The User-Agent string %ua was unblocked.', array('%ua' => $ua_string)));
     $form_state['redirect'] = 'admin/config/people/login_whitelist/ua_string';
   }
-
 }
