@@ -3,6 +3,7 @@
  * @file login_whitelist.module
  */
 define('BAD_REQUEST', 'unsafe or faulty');
+define('TOO_SHORT', 3);
 
 /**
  * Implements hook_config_info().
@@ -187,19 +188,55 @@ function login_whitelist_header() {
  * @return string $message, not empty if found bad UA
  */
 function login_whitelist_bad_ua($ua_string = '') {
-  $config        = config('login_whitelist.settings');
-  $bad_ua_list   = $config->get('ua_list');
-  $too_short     = strlen($ua_string) <= 3 ? TRUE : FALSE;
-  $message       = '';
+  $config = config('login_whitelist.settings');
+  $bad_ua_list = $config->get('ua_list');
+  $too_short = strlen($ua_string) <= TOO_SHORT ? TRUE : FALSE;
+  $message = '';
 
   if ($too_short) {
     $message = 'Rejected fake User-Agent: "' . $ua_string . '" from IP: ' . ip_address();
   }
-  if (is_array($bad_ua_list) && in_array($ua_string, $bad_ua_list)) {
+  elseif (is_array($bad_ua_list) && !empty($bad_ua_list)) {
+    // Check for U-A groups masked by *, then full U-A string 
+    foreach ($bad_ua_list as $bad_ua) {
+      if (substr($bad_ua, -1) == '*') {
+        $masked[] = substr($bad_ua, 0, -1);
+      }
+
+      if (!empty($masked)) {
+        foreach ($masked as $found) {
+          $position = strpos($ua_string, $found);
+          if ($position !== FALSE) {
+            $message = 'Rejected blocked User-Agent: "' . $ua_string . '" from IP: ' . ip_address();
+            continue 2;
+          }
+          else {
+            $message = login_whitelist_ua_found($ua_string, $bad_ua_list);
+          }
+        }
+      }
+      else {
+        $message = login_whitelist_ua_found($ua_string, $bad_ua_list);
+      }
+    }
+  }
+
+  return $message;
+}
+
+/**
+ * Found in array
+ * @param string $ua_string
+ * @param array $bad_ua_list
+ * @return string $message
+ */
+function login_whitelist_ua_found($ua_string, $bad_ua_list) {
+  $message = '';
+  if (in_array($ua_string, $bad_ua_list)) {
     $message = 'Rejected blocked User-Agent: "' . $ua_string . '" from IP: ' . ip_address();
   }
   return $message;
-} 
+}
 
 /**
  * Utility function

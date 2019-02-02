@@ -23,7 +23,7 @@ of usernames and passwords have been used for brute force, IP and User-Agent str
 Additionally, User-Agent strings used by known attackers (collected from module log) 
 can be placed to block-list for reject their further login requests.
 
-Please note: when this module enabled, administrators only can manage users accounts, 
+Please note: when this module enabled, only administrators can manage users accounts, 
 like new user registration or password reset.
 
 Installation
@@ -46,7 +46,8 @@ Under tab "Main settings":
 
 Under tab "Blocked User-Agents":
 
-- create and manage block-list of User-Agent strings known as used by bad robots.
+- create and manage block-list of User-Agent strings (or wildcarded parts of strings) known as used by bad robots 
+or just not intended for user login to your site.
 
 License
 -------

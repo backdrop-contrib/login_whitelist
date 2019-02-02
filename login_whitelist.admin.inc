@@ -116,11 +116,13 @@ function login_whitelist_ua_string_form() {
       . '<br />Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko'
       . '</em>'
       . '<br /><strong>'. t('or') .'</strong>' 
-      . '<em>'
-      . '<br />drupalgeddon2'
-      . '</em>'
-      . '<br /><strong>'    
-      . t('Please note: Any requests to user login using User-Agent string listed below will be rejected.')
+      . '<br />'
+      . '<em>drupalgeddon2</em>'
+      . '<br />' . t('Please note: the * character is a wildcard for end of string, so record like:')
+      . '<br /><em>python-requests/*</em>'
+      . '<br />' . t('will block any User-Agent strings starting with "python-requests/" ("python-requests/2.9.0" for example).')
+      . '<br /><strong>'
+      . t('Any requests to user login or register by using User-Agent string listed below will be rejected.')
       . '</strong>',
   );
   $form['add_ua']['actions'] = array('#type' => 'actions');
