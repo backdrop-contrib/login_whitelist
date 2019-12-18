@@ -13,17 +13,18 @@ by creating your own whitelist.
 "Lazy" brute force attack can use large number non-repeated IPs with relatively rare requests 
 (one or two in few minutes) and cannot be prevented by using IP-based blacklisting.
 
-This module react to such behavior by returning to attacker error 403 or 404 (you choice) 
-to any user login related activity attempt in case username or email is not whitelisted or 
-if login request is harmfully malformed, for example: executable code injection attempt.
+This module react to such behavior by returning error 404 or 403 (you can select which) 
+to attacker for any user login related activity:
+- in case username or email is not in whitelist;
+- if login request is harmfully malformed, for example: executable code injection attempt.
 
 By enabling logging all unwanted login attempts you can have an idea which pairs 
 of usernames and passwords have been used for brute force, IP and User-Agent string used by attacker script.
 
-Additionally, User-Agent strings used by known attackers (collected from module log) 
-can be placed to block-list for reject their further login requests.
+Additionally, User-Agent strings used by known attackers (also collected from the module log) 
+can be placed to block-list to reject further login requests.
 
-Please note: when this module enabled, only administrators can manage users accounts, 
+**Please note:** when this module enabled, only administrators can manage users accounts, 
 like new user registration or password reset.
 
 Installation
@@ -35,7 +36,7 @@ https://backdropcms.org/guide/modules
 Configuration
 -------------
 
-Administration page is available via menu *Administration > Configuration > 
+Configuration page is available via menu *Administration > Configuration > 
 User accounts > Login whitelist* (admin/config/people/login_whitelist).
 
 Under tab "Main settings":
@@ -46,8 +47,11 @@ Under tab "Main settings":
 
 Under tab "Blocked User-Agents":
 
-- create and manage block-list of User-Agent strings (or wildcarded parts of strings) known as used by bad robots 
-or just not intended for user login to your site.
+- block an User-Agent string:
+    - enter unwanted User-Agent string (wildcarded part of string can be used);
+
+- unblock previously blocked User-Agent:
+    - beside an User-Agent string, click "Unblock", then confirm unblocking.
 
 License
 -------

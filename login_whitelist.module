@@ -2,7 +2,7 @@
 /**
  * @file login_whitelist.module
  */
-define('BAD_REQUEST', 'unsafe or faulty');
+define('BAD_REQUEST', 'unsafe or harmful');
 define('TOO_SHORT', 3);
 
 /**
@@ -83,16 +83,16 @@ function login_whitelist_init() {
   $do_reject        = FALSE;
   $watchdog_message = '';
 
-  if (arg(0) == 'user') {
-    $ua_string      = isset($_SERVER['HTTP_USER_AGENT']) ? htmlspecialchars($_SERVER['HTTP_USER_AGENT']) : '';
-    $request_method = $_SERVER['REQUEST_METHOD'];
-    $bad_ua         = login_whitelist_bad_ua($ua_string);
+  if (strpos($_SERVER['REQUEST_URI'], 'user/') !== FALSE) {
+    $ua_string = isset($_SERVER['HTTP_USER_AGENT']) ? htmlspecialchars($_SERVER['HTTP_USER_AGENT']) : '';
+    $bad_ua    = login_whitelist_bad_ua($ua_string);
     
     if (!empty($bad_ua)) {
       $watchdog_message = $bad_ua;
       $do_reject = TRUE;
     }
     else {
+      $request_method = $_SERVER['REQUEST_METHOD'];
       if ($request_method == 'POST') {
         $login_name = !empty($_POST['name']) && is_string($_POST['name']) 
           ? htmlspecialchars($_POST['name']) 
@@ -177,7 +177,7 @@ function login_whitelist_header() {
   $config      = config('login_whitelist.settings');
   $status_code = $config->get('status_code');
 
-  $status_string = $status_code == '403' ? ' 403 Forbidden' : ' 404 Not found';
+  $status_string = $status_code == '403' ? ' 403 Forbidden' : ' 404 Not Found';
 
   header($_SERVER['SERVER_PROTOCOL'] . $status_string);
 }
@@ -188,10 +188,11 @@ function login_whitelist_header() {
  * @return string $message, not empty if found bad UA
  */
 function login_whitelist_bad_ua($ua_string = '') {
-  $config = config('login_whitelist.settings');
+  $config      = config('login_whitelist.settings');
   $bad_ua_list = $config->get('ua_list');
-  $too_short = strlen($ua_string) <= TOO_SHORT ? TRUE : FALSE;
-  $message = '';
+  $too_short   = strlen($ua_string) <= TOO_SHORT ? TRUE : FALSE;
+  $status_code = $config->get('status_code');
+  $message     = '';
 
   if ($too_short) {
     $message = 'Rejected fake User-Agent: "' . $ua_string . '" from IP: ' . ip_address();
@@ -207,7 +208,7 @@ function login_whitelist_bad_ua($ua_string = '') {
         foreach ($masked as $found) {
           $position = strpos($ua_string, $found);
           if ($position !== FALSE) {
-            $message = 'Rejected blocked User-Agent: "' . $ua_string . '" from IP: ' . ip_address();
+            $message = 'IP: ' . ip_address() . ', blocked UA: "' . $ua_string . '" rejected with code ' . $status_code;
             continue 2;
           }
           else {
@@ -231,9 +232,12 @@ function login_whitelist_bad_ua($ua_string = '') {
  * @return string $message
  */
 function login_whitelist_ua_found($ua_string, $bad_ua_list) {
-  $message = '';
+  $config      = config('login_whitelist.settings');
+  $status_code = $config->get('status_code');
+  $message     = '';
+  
   if (in_array($ua_string, $bad_ua_list)) {
-    $message = 'Rejected blocked User-Agent: "' . $ua_string . '" from IP: ' . ip_address();
+    $message = 'IP: ' . ip_address() . ', blocked UA: "' . '" rejected with code ' . $status_code;
   }
   return $message;
 }

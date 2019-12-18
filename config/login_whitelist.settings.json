@@ -1,6 +1,6 @@
 {
   "_config_name": "login_whitelist.settings",
-  "status_code": "403",
+  "status_code": "404",
   "all_users": 1,
   "whitelist": "",
   "ua_list": [],  
