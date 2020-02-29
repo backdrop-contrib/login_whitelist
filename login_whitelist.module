@@ -237,7 +237,7 @@ function login_whitelist_ua_found($ua_string, $bad_ua_list) {
   $message     = '';
   
   if (in_array($ua_string, $bad_ua_list)) {
-    $message = 'IP: ' . ip_address() . ', blocked UA: "' . '" rejected with code ' . $status_code;
+    $message = 'IP: ' . ip_address() . ', blocked UA: "' . $ua_string . '" rejected with code ' . $status_code;
   }
   return $message;
 }
