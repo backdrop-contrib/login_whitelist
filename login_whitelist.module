@@ -82,8 +82,9 @@ function login_whitelist_menu() {
 function login_whitelist_init() {
   $do_reject        = FALSE;
   $watchdog_message = '';
-
-  if (strpos($_SERVER['REQUEST_URI'], 'user/') !== FALSE) {
+  $r_uri            = htmlspecialchars($_SERVER['REQUEST_URI']);
+   
+  if (strpos($r_uri, 'user/') || strpos($r_uri, 'user%') !== FALSE) {
     $ua_string = isset($_SERVER['HTTP_USER_AGENT']) ? htmlspecialchars($_SERVER['HTTP_USER_AGENT']) : '';
     $bad_ua    = login_whitelist_bad_ua($ua_string);
     
