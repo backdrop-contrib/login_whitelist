@@ -1,6 +1,10 @@
 Login whitelist
 ===============
 
+**This module is discontinued and should be replaced by their renamed successor, 
+the module "Login allowlist" available at https://backdropcms.org/project/login_allowlist 
+or https://github.com/backdrop-contrib/login_allowlist created with the aim of use inclusive naming.**
+
 Restrict login to your site for whitelisted users only, protect against "lazy"   
 brute force attack and harmful malformed login requests.
 
